@@ -1,21 +1,25 @@
 package com.example.finalprojectpapb;
 
+import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import org.tensorflow.lite.Interpreter;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 
@@ -26,6 +30,9 @@ public class MainActivity extends AppCompatActivity {
     private Interpreter tflite;
     private Bitmap selectedImage;
 
+    private static final int REQUEST_IMAGE_CAPTURE = 101;
+    private static final int REQUEST_IMAGE_PICK = 102;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
         imageView = findViewById(R.id.acneimage);
         resultTextView = findViewById(R.id.result);
         Button detectButton = findViewById(R.id.detectbutton);
+        Button uploadButton = findViewById(R.id.uploadbutton);
 
         try {
             tflite = new Interpreter(loadModelFile());
@@ -42,8 +50,7 @@ public class MainActivity extends AppCompatActivity {
             Log.e(TAG, "Failed to load model", e);
         }
 
-        selectedImage = BitmapFactory.decodeResource(getResources(), R.drawable.acne2);
-        imageView.setImageBitmap(selectedImage);
+        uploadButton.setOnClickListener(v -> dispatchPickImageIntent());
 
         detectButton.setOnClickListener(v -> {
             if (selectedImage != null) {
@@ -62,6 +69,52 @@ public class MainActivity extends AppCompatActivity {
         long declaredLength = fileDescriptor.getDeclaredLength();
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
+
+    private void dispatchPickImageIntent() {
+        Intent pickPhoto = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(pickPhoto, REQUEST_IMAGE_PICK);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case REQUEST_IMAGE_CAPTURE:
+                    Bundle extras = data.getExtras();
+                    if (extras != null) {
+                        selectedImage = (Bitmap) extras.get("data");
+                        imageView.setImageBitmap(selectedImage);
+                        Log.d(TAG, "Image captured successfully");
+                    } else {
+                        Log.e(TAG, "Failed to capture image: extras is null");
+                    }
+                    break;
+                case REQUEST_IMAGE_PICK:
+                    if (data != null && data.getData() != null) {
+                        try {
+                            InputStream inputStream = getContentResolver().openInputStream(data.getData());
+                            selectedImage = BitmapFactory.decodeStream(inputStream);
+                            imageView.setImageBitmap(selectedImage);
+                            Log.d(TAG, "Image picked successfully");
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Log.e(TAG, "Failed to decode image", e);
+                        }
+                    } else {
+                        Log.e(TAG, "Failed to pick image: data or data.getData() is null");
+                    }
+                    break;
+            }
+        } else if (resultCode == RESULT_CANCELED) {
+            Log.d(TAG, "Image selection cancelled by user");
+        } else {
+            Log.e(TAG, "ActivityResult not OK: resultCode=" + resultCode);
+        }
+    }
+
+
+
 
     private class AcneDetectionTask extends AsyncTask<Bitmap, Void, String> {
         @Override
