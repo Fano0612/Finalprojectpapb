@@ -26,12 +26,20 @@
         android:layout_height="0dp"
         android:layout_marginTop="16dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/acne2"
-        app:layout_constraintBottom_toTopOf="@+id/detectbutton"
+        app:layout_constraintBottom_toTopOf="@+id/uploadbutton"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/instruction" />
 
+    <Button
+        android:id="@+id/uploadbutton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="40dp"
+        android:text="Upload"
+        app:layout_constraintBottom_toTopOf="@+id/detectbutton"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
     <Button
         android:id="@+id/detectbutton"
